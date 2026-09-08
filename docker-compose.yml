@@ -2,8 +2,13 @@ name: hytale-server
 
 services:
   hytale:
+    # Default: build the image locally from this repo.
+    # To use the prebuilt image from GitHub Container Registry instead,
+    # comment out "build: ." and set:
+    #   image: ghcr.io/itsashn/hytale-server:main
     build: .
     image: hytale-server:local
+    pull_policy: build
     container_name: hytale-server
     restart: unless-stopped
     ports:

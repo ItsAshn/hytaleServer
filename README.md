@@ -44,6 +44,13 @@ cp .env.example .env       # adjust settings (server name, memory, …)
 docker compose up -d
 ```
 
+By default Compose builds the image locally from the `Dockerfile`. A prebuilt
+image is also published to the GitHub Container Registry by the
+[Docker image workflow](.github/workflows/docker-publish.yml) — to use it,
+edit `docker-compose.yml`: comment out `build: .` and set
+`image: ghcr.io/itsashn/hytale-server:main`, then
+`docker compose pull && docker compose up -d`.
+
 Then watch the first-boot login:
 
 ```bash
