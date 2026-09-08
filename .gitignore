@@ -1,0 +1,5 @@
+# Local configuration with your secrets (DDNS token etc.)
+.env
+
+# Runtime data: server jar, worlds, logs, persisted auth
+data/

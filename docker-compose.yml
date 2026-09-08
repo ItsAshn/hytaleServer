@@ -1,0 +1,59 @@
+name: hytale-server
+
+services:
+  hytale:
+    build: .
+    image: hytale-server:local
+    container_name: hytale-server
+    restart: unless-stopped
+    ports:
+      # Hytale speaks QUIC over UDP 5520 (not TCP!). Forward UDP 5520 on your
+      # router to this host for internet play.
+      - "5520:5520/udp"
+    volumes:
+      # All mutable state lives here: server files, worlds, config, logs and
+      # the persisted auth (auth.enc + downloader credentials + machine-id).
+      # Back up this folder and your server is fully backed up.
+      - ./data:/data
+    env_file: .env
+    environment:
+      # Defaults; override in .env
+      MEMORY: ${MEMORY:-4G}
+      SERVER_NAME: ${SERVER_NAME:-Hytale Server}
+      MAX_PLAYERS: ${MAX_PLAYERS:-20}
+      MAX_VIEW_RADIUS: ${MAX_VIEW_RADIUS:-12}
+      PATCHLINE: ${PATCHLINE:-release}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    # Interactive console: attach with `docker attach hytale-server`
+    # (detach with Ctrl+P Ctrl+Q).
+    stdin_open: true
+    tty: true
+    # Give the server time to save the world on shutdown.
+    stop_grace_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Optional: keeps a DNS hostname pointed at your (changing) home IP.
+  # This is the dynamic-IP half of the setup — players connect to
+  #   <DDNS_HOSTNAME>:5520
+  # and never need to know your current IP. Enable with:
+  #   docker compose --profile ddns up -d
+  # ---------------------------------------------------------------------------
+  ddns-updater:
+    image: alpine:3
+    container_name: hytale-ddns
+    restart: unless-stopped
+    profiles: ["ddns"]
+    depends_on:
+      - hytale
+    command: ["/scripts/update-ddns.sh"]
+    volumes:
+      - ./scripts:/scripts:ro
+    env_file: .env
+    environment:
+      DDNS_PROVIDER: ${DDNS_PROVIDER:-duckdns}
+      DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
+      DDNS_TOKEN: ${DDNS_TOKEN:-}
+      DDNS_USERNAME: ${DDNS_USERNAME:-}
+      DDNS_INTERVAL: ${DDNS_INTERVAL:-300}
+      DDNS_UPDATE_URL: ${DDNS_UPDATE_URL:-}
