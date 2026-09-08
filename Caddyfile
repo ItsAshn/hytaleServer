@@ -1,0 +1,16 @@
+# Caddy configuration for serving your own domain in front of the Hytale
+# server setup — without needing a Cloudflare (or any DNS-provider) API token.
+#
+# Caddy obtains and auto-renews a TLS certificate for CADDY_DOMAIN using the
+# ACME HTTP-01 challenge. That challenge only requires an inbound HTTP port
+# (see CADDY_HTTP_PORT in .env / docker-compose.yml) reachable from the
+# internet and an A/AAAA record for the domain pointing at this host.
+#
+# The Hytale game traffic itself is QUIC over UDP 5520 and is NOT proxied by
+# Caddy — players still connect to <domain>:5520 directly. This site simply
+# answers HTTPS on the domain (handy as a landing/status page and to keep the
+# certificate valid).
+
+{$CADDY_DOMAIN} {
+	respond "Hytale server is running. Connect with your game client to {$CADDY_DOMAIN}:5520" 200
+}

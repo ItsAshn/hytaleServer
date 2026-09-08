@@ -76,3 +76,46 @@ services:
       DDNS_ZONE_NAME: ${DDNS_ZONE_NAME:-}
       DDNS_TTL: ${DDNS_TTL:-1}
       DDNS_PROXIED: ${DDNS_PROXIED:-false}
+
+  # ---------------------------------------------------------------------------
+  # Optional: Caddy reverse proxy for your own domain — no API token needed.
+  # Use this instead of the Cloudflare DDNS provider when your domain's DNS is
+  # NOT on Cloudflare (or you simply don't want to hand out an API token).
+  # Caddy obtains and renews a TLS certificate for CADDY_DOMAIN via the ACME
+  # HTTP-01 challenge, which only requires:
+  #   1. an A/AAAA record for CADDY_DOMAIN pointing at this host's public IP
+  #      (the ddns-updater "manual" provider can tell you that IP), and
+  #   2. the HTTP port below reachable from the internet.
+  # The game itself still uses UDP 5520 directly — Caddy only secures the
+  # domain (e.g. for a status page or future web tooling).
+  # Enable with:
+  #   docker compose --profile caddy up -d
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: hytale-caddy
+    restart: unless-stopped
+    profiles: ["caddy"]
+    depends_on:
+      - hytale
+    ports:
+      # The HTTP port is customizable: set CADDY_HTTP_PORT in .env when 80 is
+      # already taken on this host. Whatever you choose must be reachable from
+      # the internet for certificate issuance/renewal (HTTP-01 challenge).
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-}
+
+volumes:
+  # Persist Caddy's issued certificates and ACME account across restarts so
+  # renewals stay hands-off and you don't re-hit rate limits.
+  caddy_data:
+  caddy_config:

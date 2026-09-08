@@ -78,7 +78,8 @@ the `./data` volume, so **every restart after this is fully hands-off**.
 1. **Port forward** UDP **5520** on your router to the machine running the
    container. (QUIC is UDP-only; forwarding TCP does nothing.)
 2. **Pick a hostname provider** (below): a free DuckDNS subdomain, your own
-   domain on Cloudflare, No-IP, or any provider with an HTTP update API.
+   domain on Cloudflare, your own domain via Caddy (no API token), No-IP, or
+   any provider with an HTTP update API.
 3. **Start the updater sidecar** and give your friends the address
    **`<hostname>:5520`**:
    ```bash
@@ -117,7 +118,33 @@ Use e.g. `play.example.com` for a domain whose DNS is hosted on Cloudflare:
    current IP. Leave `DDNS_PROXIED=false` — proxying would break the direct
    UDP connection the game needs.
 
-#### Other providers
+#### Option C — your own domain via Caddy (no API token)
+
+If your domain's DNS is **not** on Cloudflare — or you simply don't want to
+create a Cloudflare API token — use the bundled [Caddy](https://caddyserver.com)
+reverse proxy instead. Caddy gets and renews a TLS certificate for your domain
+using the ACME **HTTP-01 challenge**, which needs no API token at all.
+
+1. Point an **A/AAAA record** for your domain (e.g. `play.example.com`) at
+   this host's current public IP. If your IP is dynamic, the
+   `DDNS_PROVIDER=manual` sidecar can print it for you.
+2. Make sure Caddy's HTTP port is reachable from the internet (needed for
+   certificate issuance/renewal). It defaults to **80** — if that port is
+   already taken on this host, set `CADDY_HTTP_PORT` in `.env` to a free port
+   and forward **that** port on your router.
+3. Set in `.env`:
+   ```
+   CADDY_DOMAIN=play.example.com
+   # CADDY_HTTP_PORT=80    # customize if 80 is already in use
+   ```
+4. Start it:
+   ```bash
+   docker compose --profile caddy up -d
+   ```
+
+Players still connect to **`play.example.com:5520`** — the game speaks QUIC
+over UDP 5520, which Caddy does not proxy. Caddy only secures the domain over
+HTTPS (serving a small status line) and keeps its certificate valid.
 
 - **No-IP**: `DDNS_PROVIDER=noip` + `DDNS_HOSTNAME`, `DDNS_USERNAME`,
   `DDNS_PASSWORD`.
