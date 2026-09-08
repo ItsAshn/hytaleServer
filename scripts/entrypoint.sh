@@ -20,15 +20,19 @@ log() {
 # User / permissions
 # ---------------------------------------------------------------------------
 # Adjust the hytale user's ids when PUID/PGID are overridden so bind-mounted
-# host folders stay writable.
-if [ "${PUID}" != "1000" ] || [ "${PGID}" != "1000" ]; then
-    log "Adjusting hytale user to PUID=${PUID} PGID=${PGID}"
-    groupmod -o -g "${PGID}" hytale
+# host folders stay writable. Ownership is changed by numeric id so this also
+# works when the group 1000 has a different name in the image.
+if [ "${PGID}" != "1000" ]; then
+    log "Adjusting hytale group to PGID=${PGID}"
+    groupmod -o -g "${PGID}" "$(id -gn hytale)"
+fi
+if [ "${PUID}" != "1000" ]; then
+    log "Adjusting hytale user to PUID=${PUID}"
     usermod -o -u "${PUID}" -g "${PGID}" hytale
 fi
 
 mkdir -p "${DATA_DIR}"
-chown -R hytale:hytale "${DATA_DIR}"
+chown -R "${PUID}:${PGID}" "${DATA_DIR}"
 
 # ---------------------------------------------------------------------------
 # Stable machine-id

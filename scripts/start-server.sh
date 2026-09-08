@@ -158,8 +158,9 @@ shutdown() {
     log "Shutdown requested — stopping server (this can take a few seconds)"
     if [ -n "${JAVA_PID:-}" ] && kill -0 "${JAVA_PID}" 2>/dev/null; then
         printf '/stop\n' > "${CONSOLE_FIFO}" 2>/dev/null || true
-        # Give the server a moment to save; SIGTERM follows via docker's grace period.
-        for _ in $(seq 1 25); do
+        # Give the server time to save; must stay below compose's
+        # stop_grace_period (60s) or docker SIGKILLs us.
+        for _ in $(seq 1 50); do
             kill -0 "${JAVA_PID}" 2>/dev/null || break
             sleep 1
         done
