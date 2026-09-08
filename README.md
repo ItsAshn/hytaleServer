@@ -9,9 +9,11 @@ Two problems of home hosting are solved for you:
 1. **Headless operation** — the official server's device-flow authentication
    is automated and persisted, so the container survives restarts without you
    logging in again.
-2. **Dynamic IP** — an optional DDNS sidecar keeps a hostname (e.g.
-   `myserver.duckdns.org`) pointed at your current IP, so your friends always
-   connect to the same address no matter how often your ISP changes it.
+2. **Dynamic IP** — an optional DDNS sidecar keeps a hostname (a free
+   `myserver.duckdns.org` subdomain, or your **own domain** such as
+   `play.example.com` on Cloudflare) pointed at your current IP, so your
+   friends always connect to the same address no matter how often your ISP
+   changes it.
 
 ## How it works
 
@@ -75,25 +77,55 @@ the `./data` volume, so **every restart after this is fully hands-off**.
 
 1. **Port forward** UDP **5520** on your router to the machine running the
    container. (QUIC is UDP-only; forwarding TCP does nothing.)
-2. **Get a free dynamic DNS hostname**, e.g. at [DuckDNS](https://www.duckdns.org):
-   - Create a subdomain like `myserver.duckdns.org` and copy your token.
-   - In `.env` set:
-     ```
-     DDNS_PROVIDER=duckdns
-     DDNS_HOSTNAME=myserver.duckdns.org
-     DDNS_TOKEN=your-token-here
-     ```
-   - Start with the updater sidecar:
-     ```bash
-     docker compose --profile ddns up -d
-     ```
-3. Give your friends the address **`myserver.duckdns.org:5520`**. Whenever
-   your ISP changes your IP, the sidecar updates the DNS record within
-   ~5 minutes (`DDNS_INTERVAL`).
+2. **Pick a hostname provider** (below): a free DuckDNS subdomain, your own
+   domain on Cloudflare, No-IP, or any provider with an HTTP update API.
+3. **Start the updater sidecar** and give your friends the address
+   **`<hostname>:5520`**:
+   ```bash
+   docker compose --profile ddns up -d
+   ```
+   Whenever your ISP changes your IP, the sidecar updates the DNS record
+   within ~5 minutes (`DDNS_INTERVAL`).
 
-> No-IP (`DDNS_PROVIDER=noip` + `DDNS_USERNAME`/`DDNS_PASSWORD`) and any
-> other provider with an HTTP update API (`DDNS_PROVIDER=custom` +
-> `DDNS_UPDATE_URL`, with `{IP}` as placeholder) are also supported.
+#### Option A — free DuckDNS subdomain
+
+Create a subdomain like `myserver.duckdns.org` at
+[DuckDNS](https://www.duckdns.org), copy your token, and set in `.env`:
+
+```
+DDNS_PROVIDER=duckdns
+DDNS_HOSTNAME=myserver.duckdns.org
+DDNS_TOKEN=your-token-here
+```
+
+#### Option B — your own domain on Cloudflare
+
+Use e.g. `play.example.com` for a domain whose DNS is hosted on Cloudflare:
+
+1. In the Cloudflare dashboard, note your **zone name** (`example.com`).
+2. Create an **API token** at
+   <https://dash.cloudflare.com/profile/api-tokens> with the permission
+   **Zone → DNS → Edit** for that zone.
+3. Set in `.env`:
+   ```
+   DDNS_PROVIDER=cloudflare
+   DDNS_ZONE_NAME=example.com
+   DDNS_HOSTNAME=play.example.com      # comma-separate several records
+   DDNS_API_TOKEN=your-token-here
+   ```
+   The sidecar creates the A record if missing and keeps it pointed at your
+   current IP. Leave `DDNS_PROXIED=false` — proxying would break the direct
+   UDP connection the game needs.
+
+#### Other providers
+
+- **No-IP**: `DDNS_PROVIDER=noip` + `DDNS_HOSTNAME`, `DDNS_USERNAME`,
+  `DDNS_PASSWORD`.
+- **Any HTTP update API**: `DDNS_PROVIDER=custom` + `DDNS_UPDATE_URL`, with
+  `{IP}` as the placeholder for the detected public IP.
+- **Manual / static IP**: `DDNS_PROVIDER=manual` just prints your current
+  public IP so you can create the A record yourself (useful for other DNS
+  hosts, or when your IP doesn't actually change), then exits.
 
 ### LAN-only play
 
