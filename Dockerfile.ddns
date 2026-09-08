@@ -1,0 +1,14 @@
+# DDNS updater sidecar image.
+#
+# Keeps a DNS hostname (DuckDNS, No-IP, Cloudflare or any HTTP update URL)
+# pointed at the host's current public IP for the Hytale server. Only used by
+# the optional `ddns` compose profile; see scripts/update-ddns.sh.
+#
+FROM alpine:3
+
+# bash: update-ddns.sh is a bash script
+# curl: public-IP detection + provider update APIs
+# jq:   parsing Cloudflare API responses
+RUN apk add --no-cache bash curl jq
+
+ENTRYPOINT ["/scripts/update-ddns.sh"]

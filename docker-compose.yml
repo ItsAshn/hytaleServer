@@ -47,13 +47,17 @@ services:
   #   docker compose --profile ddns up -d
   # ---------------------------------------------------------------------------
   ddns-updater:
-    image: alpine:3
+    # Small sidecar image (alpine + bash/curl/jq) that runs update-ddns.sh.
+    build:
+      context: .
+      dockerfile: Dockerfile.ddns
+    image: hytale-ddns:local
+    pull_policy: build
     container_name: hytale-ddns
     restart: unless-stopped
     profiles: ["ddns"]
     depends_on:
       - hytale
-    command: ["/scripts/update-ddns.sh"]
     volumes:
       - ./scripts:/scripts:ro
     env_file:
@@ -64,5 +68,11 @@ services:
       DDNS_HOSTNAME: ${DDNS_HOSTNAME:-}
       DDNS_TOKEN: ${DDNS_TOKEN:-}
       DDNS_USERNAME: ${DDNS_USERNAME:-}
+      DDNS_PASSWORD: ${DDNS_PASSWORD:-}
       DDNS_INTERVAL: ${DDNS_INTERVAL:-300}
       DDNS_UPDATE_URL: ${DDNS_UPDATE_URL:-}
+      # cloudflare provider (your own domain)
+      DDNS_API_TOKEN: ${DDNS_API_TOKEN:-}
+      DDNS_ZONE_NAME: ${DDNS_ZONE_NAME:-}
+      DDNS_TTL: ${DDNS_TTL:-1}
+      DDNS_PROXIED: ${DDNS_PROXIED:-false}
